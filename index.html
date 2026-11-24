@@ -195,11 +195,13 @@
         customer, placed its last order on 30 Oct 1997. Canada fell 24%, but without
         Mère Paillarde the rest of Canada grew from $4.8k to $11.5k (+141%), in line with the
         company. Nobody flagged the lapse.</li>
-      <li><strong>Key accounts also receive the most discount, and deep discounts buy no extra
-        volume.</strong> The top 10 customers bring in 45% of revenue but receive 51% of all
-        discount dollars. Discounted lines carry about 26% more units than full-price lines of
-        the same product, but that lift is about the same at 5% off as at 25% off. Discounts look
-        more like rewards for large buyers than a tool that wins extra sales.</li>
+      <li><strong>Deep discounts buy no extra volume, and a few key accounts get more than their
+        share.</strong> Discounted lines carry about 26% more units than full-price lines of the
+        same product, but that lift is about the same at 5% off as at 25% off. The top 10
+        customers receive a slightly larger share of discounts than of revenue (51% vs 45%),
+        driven mainly by Save-a-lot Markets, Hungry Owl and Ernst Handel; others in the top 10,
+        such as Rattlesnake Canyon, get well below their share. Discounts do not look like a
+        tool that wins extra sales.</li>
     </ul>
     <div class="story">
       <div class="card">
@@ -439,9 +441,12 @@
         at a fraction of the cost.</li>
       <li>Require approval for discounts above 10%, with a stated reason such as a competing
         offer or a volume commitment.</li>
-      <li>Review discounts for key accounts deliberately: the top 10 customers receive 51% of
-        discount dollars (see <a href="#q2">question 2</a>). Their loyalty may matter more than
-        the discount does.</li>
+      <li>Review discount terms account by account rather than for "key accounts" as a group.
+        The top 10 customers (see <a href="#q2">question 2</a>) receive a slightly larger share
+        of discounts than of revenue (51% vs 45%; an effective discount of 7.4% against 5.8% for
+        other customers), but only 5 of the 10 get more than their share. The gap comes mainly
+        from Save-a-lot Markets (12.8% of discount dollars vs 8.2% of revenue), Hungry Owl
+        (8.3% vs 3.9%) and Ernst Handel (9.4% vs 8.3%); start the review with them.</li>
       <li>Add product costs to the data before judging profitability; revenue alone cannot show
         whether any discount level is profitable.</li>
     </ul>
@@ -494,6 +499,13 @@
         discounted lines have no such match and are left out of the comparison. Eight lines
         with odd discounts of 1–6% are counted in the 5% band. Intervals are 95% bootstrap
         intervals from 1,000 resamples with a fixed seed.</dd>
+
+      <dt>Discounts by customer</dt>
+      <dd>Revenue given away = UnitPrice × Quantity × Discount for every discounted line (all
+        838, $88,666 in total), assigned to customers through the Orders sheet. "Top 10" uses the
+        same revenue ranking as question 2. The effective discount rate is revenue given away
+        divided by revenue before discounts, pooled over each group of customers. Per-customer
+        figures are in <code>data/processed/discount_by_customer.csv</code>.</dd>
 
       <dt>Reproduce</dt>
       <dd>

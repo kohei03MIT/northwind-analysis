@@ -3,7 +3,9 @@
 Answers business question 4. Each discounted order line is compared
 with full-price lines of the same product at the same unit price, so
 differences between products and list-price changes over time do not
-distort the result. Writes a summary CSV and one two-panel chart.
+distort the result. Also splits discount dollars by customer to show
+how much goes to the largest customers. Writes two CSVs and one
+two-panel chart.
 
 The dataset has no cost data, so this measures revenue given away and
 revenue gained, not profit.
@@ -24,7 +26,11 @@ from matplotlib.ticker import FuncFormatter, PercentFormatter
 from country_growth import (
     BLUE, BLUE_LIGHT, DATA_FILE, FIGURES_DIR, GRID, INK, INK_MUTED,
     INK_SECONDARY, PROCESSED_DIR, SURFACE, _money, _style_axes,
+    load_order_revenue,
 )
+# Customer ranking from question 2, so "top 10" means the same customers
+# here as on the customer concentration chart.
+from customer_concentration import TOP_N, customer_revenue
 
 BANDS = ["5%", "10%", "15%", "20%", "25%"]
 ALL = "All discounts"
@@ -173,6 +179,50 @@ def bootstrap_intervals(lines):
     return out.reindex(BANDS + [ALL])
 
 
+def discount_by_customer(lines, path):
+    """Split revenue given away by customer, ranked by revenue.
+
+    Uses every discounted line, including the few without a full-price
+    match, so the total equals all revenue given away.
+
+    Args:
+        lines (pandas.DataFrame): Output of ``load_lines``.
+        path (pathlib.Path): Northwind Excel workbook.
+
+    Returns:
+        pandas.DataFrame: One row per customer with at least one order,
+            in revenue-rank order, with ``Rank``, ``CustomerID``,
+            ``CompanyName``, ``Country``, ``Revenue``, ``RevenueShare``,
+            ``DiscountedLines``, ``Gross`` (revenue before discounts),
+            ``GivenAway``, ``DiscountShare`` (share of all revenue given
+            away), ``EffectiveDiscount`` (GivenAway over Gross), and
+            ``ShareGap`` (DiscountShare minus RevenueShare; positive
+            means more than its share).
+    """
+    sheets = pd.read_excel(path, sheet_name=["Orders", "Customers"])
+    with_customer = lines.merge(
+        sheets["Orders"][["OrderID", "CustomerID"]], on="OrderID",
+        how="inner", validate="many_to_one",
+    )
+    per_customer = with_customer.groupby("CustomerID").agg(
+        DiscountedLines=("Discounted", "sum"),
+        Gross=("Gross", "sum"),
+        GivenAway=("GivenAway", "sum"),
+    )
+
+    ranked = customer_revenue(load_order_revenue(path), sheets["Customers"])
+    table = ranked[["Rank", "CustomerID", "CompanyName", "Country",
+                    "Revenue", "Share"]].rename(
+        columns={"Share": "RevenueShare"}
+    ).join(per_customer, on="CustomerID")
+
+    table["DiscountShare"] = table["GivenAway"] / table["GivenAway"].sum()
+    table["EffectiveDiscount"] = table["GivenAway"] / table["Gross"]
+    table["ShareGap"] = table["DiscountShare"] - table["RevenueShare"]
+    table["DiscountedLines"] = table["DiscountedLines"].astype(int)
+    return table
+
+
 def plot_discount_effect(summary, out_path):
     """Draw quantity lift against break-even lift, and revenue given away.
 
@@ -268,7 +318,7 @@ def main():
         None.
 
     Returns:
-        None. Writes a CSV to ``data/processed/`` and a PNG to
+        None. Writes two CSVs to ``data/processed/`` and a PNG to
         ``figures/``, and prints the key numbers.
     """
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -279,6 +329,10 @@ def main():
     summary = effects_by_band(disc).join(bootstrap_intervals(lines))
     summary.to_csv(PROCESSED_DIR / "discount_effect.csv", index_label="Band")
     plot_discount_effect(summary, FIGURES_DIR / "discount_effect.png")
+
+    by_customer = discount_by_customer(lines, DATA_FILE)
+    by_customer.to_csv(PROCESSED_DIR / "discount_by_customer.csv",
+                       index=False)
 
     full = lines[~lines["Discounted"]]
     print(f"Lines: {len(lines)}; discounted: {lines['Discounted'].sum()} "
@@ -297,6 +351,26 @@ def main():
         "GivenAway": "{:,.0f}".format, "QtyLiftLow": pct,
         "QtyLiftHigh": pct, "RevenueVsFullLow": pct,
         "RevenueVsFullHigh": pct,
+    }))
+
+    top = by_customer.head(TOP_N)
+    others = by_customer.iloc[TOP_N:]
+    print(f"\nTop {TOP_N} customers by revenue: "
+          f"{top['RevenueShare'].sum():.1%} of revenue, "
+          f"{top['DiscountShare'].sum():.1%} of revenue given away "
+          f"(${top['GivenAway'].sum():,.0f} of "
+          f"${by_customer['GivenAway'].sum():,.0f})")
+    # Pooled rate: total given away over total gross, so customers with
+    # no discounts still count in the denominator.
+    rate = lambda t: t["GivenAway"].sum() / t["Gross"].sum()
+    print(f"Effective discount rate: top {TOP_N} {rate(top):.1%}, "
+          f"other customers {rate(others):.1%}, all {rate(by_customer):.1%}")
+    share = "{:.1%}".format
+    print(top.to_string(index=False, formatters={
+        "Revenue": "{:,.0f}".format, "RevenueShare": share,
+        "Gross": "{:,.0f}".format,
+        "GivenAway": "{:,.0f}".format, "DiscountShare": share,
+        "EffectiveDiscount": share, "ShareGap": "{:+.1%}".format,
     }))
 
 
