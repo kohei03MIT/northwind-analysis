@@ -110,9 +110,10 @@ def effect(disc):
 
     Returns:
         dict[str, float]: ``Lines``; ``QtyLift`` (actual quantity over
-            benchmark quantity, minus 1); ``BreakEvenLift`` (lift needed
-            for net revenue to match a full-price line); ``RevenueVsFull``
-            (net revenue over benchmark full-price revenue, minus 1);
+            benchmark quantity, minus 1); ``BreakEvenLift`` (lift
+            needed for net revenue to match a full-price line);
+            ``RevenueVsFull`` (net revenue over benchmark full-price
+            revenue, minus 1);
             ``Net`` and ``GivenAway`` (dollars).
     """
     return {
@@ -224,7 +225,7 @@ def discount_by_customer(lines, path):
 
 
 def plot_discount_effect(summary, out_path):
-    """Draw quantity lift against break-even lift, and revenue given away.
+    """Draw quantity lift vs break-even lift, and revenue given away.
 
     Left panel: for each discount band, the measured quantity lift with
     its 95% interval, next to the lift needed just to keep revenue

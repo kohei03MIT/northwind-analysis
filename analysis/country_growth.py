@@ -61,6 +61,10 @@ def load_order_revenue(path):
         pandas.DataFrame: Columns ``OrderID``, ``OrderDate``,
             ``CustomerID``, ``Country``, ``Revenue``, and ``Month``
             (``pandas.Period``, monthly).
+
+    Raises:
+        ValueError: If an order has no line items or its customer is
+            missing from the Customers sheet.
     """
     sheets = pd.read_excel(
         path, sheet_name=["Orders", "Orders Details", "Customers"]
@@ -192,10 +196,22 @@ def summarize_groups(df):
         pandas.DataFrame: One row per group plus a "Total" row, with
             all-time ``Orders``, ``Customers``, ``Revenue``, and
             ``Share`` (fraction of all revenue), Jan-Apr revenue and
-            orders for 1997 and 1998, and ``YoY`` (fractional change).
-            Sorted by all-time revenue, with "Total" last.
+            orders for 1997 and 1998, and ``YoY`` (fractional change;
+            NaN when Jan-Apr 1997 revenue is zero). Sorted by all-time
+            revenue, with "Total" last.
     """
     def summarize(frame, key):
+        """Aggregate all-time and Jan-Apr window figures per key.
+
+        Args:
+            frame (pandas.DataFrame): Order rows to aggregate.
+            key (str): Column to group by.
+
+        Returns:
+            pandas.DataFrame: Indexed by ``key``, with ``Orders``,
+                ``Customers``, ``Revenue``, and the Jan-Apr 1997 and
+                1998 ``Revenue`` and ``Orders`` columns (0 if none).
+        """
         overall = frame.groupby(key).agg(
             Orders=("OrderID", "nunique"),
             Customers=("CustomerID", "nunique"),
@@ -222,7 +238,8 @@ def _money(value, _pos=None):
 
     Args:
         value (float): Amount in dollars.
-        _pos (int | None): Tick position; required by matplotlib, unused.
+        _pos (int | None): Tick position; unused, but matplotlib
+            passes it.
 
     Returns:
         str: Amount such as ``"$40k"`` or ``"$0"``.
