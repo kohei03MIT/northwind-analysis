@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Sales Analysis</title>
+<meta name="description" content="Three management questions answered from the Northwind dataset: country growth, customer concentration, and employee performance.">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #6f6d68;
+    --rule: #e1e0d9;
+    --accent: #2a78d6;
+    --accent-ink: #1c5cab;
+    --accent-wash: #eaf2fc;
+    --down: #b3261e;
+    --up: #006300;
+    --border: rgba(11, 11, 11, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --muted: #9a988f;
+      --rule: #2c2c2a;
+      --accent: #3987e5;
+      --accent-ink: #86b6ef;
+      --accent-wash: #16263a;
+      --down: #e66767;
+      --up: #0ca30c;
+      --border: rgba(255, 255, 255, 0.10);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #9a988f;
+    --rule: #2c2c2a;
+    --accent: #3987e5;
+    --accent-ink: #86b6ef;
+    --accent-wash: #16263a;
+    --down: #e66767;
+    --up: #0ca30c;
+    --border: rgba(255, 255, 255, 0.10);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+
+  header { padding: 56px 0 24px; }
+  .eyebrow {
+    font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 8px;
+  }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0 0 12px; }
+  .lede { font-size: 18px; color: var(--ink-2); margin: 0; max-width: 62ch; }
+
+  nav.toc {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--page); border-bottom: 1px solid var(--rule);
+  }
+  nav.toc ul {
+    list-style: none; margin: 0; padding: 10px 0;
+    display: flex; gap: 6px 20px; flex-wrap: wrap; font-size: 14px;
+  }
+  nav.toc a { color: var(--ink-2); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent-ink); text-decoration: underline; }
+
+  section { padding: 40px 0 8px; border-bottom: 1px solid var(--rule); }
+  section:last-of-type { border-bottom: 0; }
+  h2 { font-size: 26px; line-height: 1.25; margin: 0 0 4px; }
+  .qnum { color: var(--muted); font-size: 14px; margin: 0 0 4px; font-weight: 600; }
+  h3 {
+    font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); margin: 28px 0 6px;
+  }
+  p { margin: 0 0 12px; }
+  ul.tight { margin: 0 0 12px; padding-left: 20px; }
+  ul.tight li { margin-bottom: 4px; }
+  a { color: var(--accent-ink); }
+  strong { font-weight: 650; }
+
+  .story {
+    display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr);
+    margin: 24px 0 8px;
+  }
+  .story .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .card .k { font-size: 30px; font-weight: 650; line-height: 1.1; margin: 0 0 6px; }
+  .card .t { font-size: 14px; color: var(--ink-2); margin: 0; }
+  .card a { font-size: 13px; }
+  @media (max-width: 720px) { .story { grid-template-columns: 1fr; } }
+
+  /* The PNG charts are drawn on a light surface, so they sit on a light
+     card in both themes. */
+  figure { margin: 16px 0 8px; }
+  figure .frame {
+    background: #fcfcfb; border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px; overflow: hidden;
+  }
+  figure img { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  .finding {
+    background: var(--accent-wash); border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 0 0 12px;
+  }
+  .finding p:last-child { margin-bottom: 0; }
+
+  .table-scroll { overflow-x: auto; margin: 8px 0 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.total td { font-weight: 650; border-top: 2px solid var(--rule); }
+  .down { color: var(--down); }
+  .up { color: var(--up); }
+  .note { color: var(--muted); font-size: 13px; }
+
+  dl.notes { margin: 0; }
+  dl.notes dt { font-weight: 650; margin-top: 14px; }
+  dl.notes dd { margin: 2px 0 0; color: var(--ink-2); }
+  code {
+    font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px;
+  }
+  pre {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; overflow-x: auto;
+  }
+  pre code { border: 0; padding: 0; background: none; }
+  p code, dd > code, caption code { overflow-wrap: anywhere; }
+
+  footer { padding: 32px 0 56px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <p class="eyebrow">Northwind Traders · Sales analysis · Jul 1996 – May 1998</p>
+  <h1>Where growth comes from, who it depends on, and who sells it</h1>
+  <p class="lede">Three questions a sales manager can act on, answered from 830 orders and
+    $1.27M of revenue: which countries are growing, how dependent we are on a few
+    customers, and how our employees compare.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="wrap">
+    <ul>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#q8">Country growth</a></li>
+      <li><a href="#q2">Customer concentration</a></li>
+      <li><a href="#q6">Employee performance</a></li>
+      <li><a href="#notes">Data notes</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section id="summary" aria-labelledby="summary-h">
+    <h2 id="summary-h">Summary: one story in three parts</h2>
+    <p>The company more than doubled revenue between Jan–Apr 1997 and Jan–Apr 1998
+      (<strong>+121%</strong>, from $191k to $422k). The three analyses show that this growth,
+      and its risks, run through a handful of key accounts:</p>
+    <ul class="tight">
+      <li><strong>Country growth follows key accounts.</strong> QUICK-Stop supplied about half of
+        Germany's Jan–Apr 1998 revenue, and Ernst Handel accounts for 82% of all Austrian revenue.
+        Our "growing markets" are partly a few large customers.</li>
+      <li><strong>One lost account explains Canada's decline.</strong> Mère Paillarde, a top-10
+        customer, placed its last order on 30 Oct 1997. Canada fell 24%, but without
+        Mère Paillarde the rest of Canada grew from $4.8k to $11.5k (+141%), in line with the
+        company. Nobody flagged the lapse.</li>
+      <li><strong>Employees are the people who keep those accounts.</strong> Sales volume differs
+        widely across the six sales reps, while late shipments are rare and spread evenly, so
+        the useful lever is account coverage and coaching, not shipping blame.</li>
+    </ul>
+    <div class="story">
+      <div class="card">
+        <p class="k">+121%</p>
+        <p class="t">Company revenue growth, Jan–Apr 1998 vs Jan–Apr 1997. France (+5%) and
+          Canada (−24%) lagged.</p>
+        <a href="#q8">Country growth →</a>
+      </div>
+      <div class="card">
+        <p class="k">45%</p>
+        <p class="t">Share of revenue from the top 10 of 89 customers; the top 3 alone bring
+          in 25%.</p>
+        <a href="#q2">Customer concentration →</a>
+      </div>
+      <div class="card">
+        <p class="k">3.2×</p>
+        <p class="t">Revenue of the top sales rep compared with the lowest. Late-shipment rates
+          (4.6% overall) do not separate anyone.</p>
+        <a href="#q6">Employee performance →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Question 8 ---------------------------------------------------- -->
+  <section id="q8" aria-labelledby="q8-h">
+    <p class="qnum">Question 8</p>
+    <h2 id="q8-h">Which countries are growing, and which are flat or shrinking?</h2>
+
+    <h3>Why it matters</h3>
+    <p>Sales and marketing budgets should follow growth. Knowing which markets are expanding,
+      and which are stalling while the rest of the company grows, tells the manager where to
+      invest and where to investigate.</p>
+
+    <h3>Approach</h3>
+    <ul class="tight">
+      <li>Revenue per order = Σ UnitPrice × Quantity × (1 − Discount), with the country taken
+        from the customer's record.</li>
+      <li>Monthly revenue per country from Jul 1996 to Apr 1998, with a 3-month rolling average
+        to smooth out single large orders.</li>
+      <li>Growth compares <strong>Jan–Apr 1997 with Jan–Apr 1998</strong>, the same months a year
+        apart, because 1996 and 1998 are incomplete years.</li>
+      <li>The 8 countries with fewer than 20 orders in total are pooled as "Other".</li>
+    </ul>
+
+    <figure>
+      <div class="frame">
+        <a href="figures/country_yoy_jan_apr.png" title="Open full-size chart"><img src="figures/country_yoy_jan_apr.png" width="1800" height="1300" loading="lazy"
+             alt="Dumbbell chart of revenue by country for Jan–Apr 1997 versus Jan–Apr 1998. USA grows from $31.5k to $84.7k, Germany from $28.4k to $75.8k, Brazil from $11.1k to $42.8k. France is flat at about $17k to $18k. Canada falls from $15.2k to $11.5k, Mexico and Finland also fall."></a>
+      </div>
+      <figcaption>Revenue by customer country, Jan–Apr 1997 vs Jan–Apr 1998. A star marks a
+        percentage computed on fewer than 5 orders in 1997.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="frame">
+        <a href="figures/monthly_revenue_by_country.png" title="Open full-size chart"><img src="figures/monthly_revenue_by_country.png" width="2200" height="2730" loading="lazy"
+             alt="Small multiples of monthly revenue for 13 countries and an Other group, Jul 1996 to Apr 1998, all on the same scale. USA, Germany and Brazil rise steeply in early 1998; France stays flat around $5k a month; Canada is erratic and low in late 1997."></a>
+      </div>
+      <figcaption>Monthly revenue by customer country (bars) with 3-month rolling average
+        (line). Same y-axis in every panel.</figcaption>
+    </figure>
+
+    <div class="table-scroll">
+      <table>
+        <caption class="note" style="caption-side: bottom; text-align: left; padding-top: 6px;">
+          Selected countries. Full table: <code>data/processed/country_summary.csv</code>.</caption>
+        <thead><tr><th>Country</th><th class="num">Share of all revenue</th>
+          <th class="num">Jan–Apr 1997</th><th class="num">Jan–Apr 1998</th><th class="num">Change</th></tr></thead>
+        <tbody>
+          <tr><td>USA</td><td class="num">19.4%</td><td class="num">$31.5k</td><td class="num">$84.7k</td><td class="num up">+169%</td></tr>
+          <tr><td>Germany</td><td class="num">17.9%</td><td class="num">$28.4k</td><td class="num">$75.8k</td><td class="num up">+167%</td></tr>
+          <tr><td>Austria</td><td class="num">10.1%</td><td class="num">$20.0k</td><td class="num">$39.8k</td><td class="num up">+99%</td></tr>
+          <tr><td>Brazil</td><td class="num">8.6%</td><td class="num">$11.1k</td><td class="num">$42.8k</td><td class="num up">+286%</td></tr>
+          <tr><td>France</td><td class="num">6.4%</td><td class="num">$17.1k</td><td class="num">$17.9k</td><td class="num">+5%</td></tr>
+          <tr><td>UK</td><td class="num">4.7%</td><td class="num">$7.6k</td><td class="num">$22.6k</td><td class="num up">+198%</td></tr>
+          <tr><td>Canada</td><td class="num">4.0%</td><td class="num">$15.2k</td><td class="num">$11.5k</td><td class="num down">−24%</td></tr>
+          <tr class="total"><td>Company</td><td class="num">100%</td><td class="num">$191.3k</td><td class="num">$422.3k</td><td class="num up">+121%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Main finding</h3>
+    <div class="finding">
+      <p>Growth is concentrated in the <strong>USA, Germany and Brazil</strong>, which together
+        added $132k of the company's $231k increase. <strong>France is flat (+5%)</strong> and
+        <strong>Canada is shrinking (−24%)</strong> while the company more than doubled.
+        Canada's decline is entirely the loss of one customer, Mère Paillarde
+        (see <a href="#q2">question 2</a>).</p>
+    </div>
+
+    <h3>Business implication</h3>
+    <ul class="tight">
+      <li>Put new sales capacity behind the USA, Germany and Brazil, where demand is already
+        accelerating.</li>
+      <li>Treat France as the priority to diagnose: a mid-sized market (6% of revenue) that
+        stalled while every other large market grew.</li>
+      <li>Treat Canada as a win-back, not a market problem: re-engage Mère Paillarde, since the
+        rest of Canada is growing.</li>
+    </ul>
+  </section>
+
+  <!-- Question 2 ---------------------------------------------------- -->
+  <section id="q2" aria-labelledby="q2-h">
+    <p class="qnum">Question 2</p>
+    <h2 id="q2-h">How much of our revenue depends on a few customers?</h2>
+
+    <h3>Why it matters</h3>
+    <p>If a small number of customers carry a large share of revenue, losing even one is a
+      material risk. Concentration decides whether key-account managers and early-warning
+      tracking are worth their cost.</p>
+
+    <h3>Approach</h3>
+    <ul class="tight">
+      <li>Total revenue per customer over all orders, ranked from largest to smallest.</li>
+      <li>Each customer's share of revenue, the top 1/3/5/10 shares, and how many customers it
+        takes to reach 50% and 80% of revenue.</li>
+      <li>To test whether concentration is changing, compare <strong>periods of equal
+        length</strong> (Jan–Apr 1997 vs Jan–Apr 1998). A shorter period always looks more
+        concentrated, because fewer customers order in it.</li>
+    </ul>
+
+    <figure>
+      <div class="frame">
+        <a href="figures/customer_pareto.png" title="Open full-size chart"><img src="figures/customer_pareto.png" width="2400" height="1240" loading="lazy"
+             alt="Left: horizontal bars of the top 15 customers by share of revenue, led by QUICK-Stop 8.7%, Ernst Handel 8.3% and Save-a-lot Markets 8.2%, then a drop to 4% and below. Right: cumulative share of revenue against customer rank, reaching 45% at the top 10 customers and 80% at 34 customers."></a>
+      </div>
+      <figcaption>Left: the 15 largest customers (top 10 in blue). Right: cumulative share of
+        revenue by customer rank; the dashed line shows an equal split.</figcaption>
+    </figure>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Measure</th><th class="num">Value</th></tr></thead>
+        <tbody>
+          <tr><td>Customers with at least one order</td><td class="num">89 of 91</td></tr>
+          <tr><td>Largest customer (QUICK-Stop, Germany)</td><td class="num">8.7%</td></tr>
+          <tr><td>Top 3 customers</td><td class="num">25.2%</td></tr>
+          <tr><td>Top 10 customers</td><td class="num">45.0%</td></tr>
+          <tr><td>Customers needed for 50% / 80% of revenue</td><td class="num">13 / 34</td></tr>
+          <tr><td>Bottom half of customers (44)</td><td class="num">12.1%</td></tr>
+          <tr><td>Top-10 share, Jan–Apr 1997 → Jan–Apr 1998</td><td class="num">54.2% → 54.1%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Main finding</h3>
+    <div class="finding">
+      <p>Three key accounts, <strong>QUICK-Stop, Ernst Handel and Save-a-lot Markets</strong>,
+        bring in about 8% of revenue each and a quarter of revenue together; every other customer
+        is under 4%. The top 10 bring in 45%. Concentration is <strong>stable</strong>: the
+        company doubled without becoming more dependent on its largest customers. But one
+        top-10 customer, <strong>Mère Paillarde (Canada), stopped ordering after 30 Oct
+        1997</strong> and went unnoticed.</p>
+    </div>
+
+    <h3>Business implication</h3>
+    <ul class="tight">
+      <li>Assign a named key-account manager to each of the top 3 customers; together they are
+        a quarter of the business.</li>
+      <li>Add a simple early-warning rule: flag any top-20 customer with no order in 90 days.
+        It would have flagged Mère Paillarde by late January 1998.</li>
+      <li>Concentration itself is not worsening, so the priority is protecting existing key
+        accounts rather than urgently diversifying.</li>
+    </ul>
+  </section>
+
+  <!-- Question 6 ---------------------------------------------------- -->
+  <section id="q6" aria-labelledby="q6-h">
+    <p class="qnum">Question 6</p>
+    <h2 id="q6-h">How do employees compare on sales and on fulfillment quality?</h2>
+
+    <h3>Why it matters</h3>
+    <p>Incentives, coaching and territory decisions need to rest on differences that are real.
+      Looking at revenue together with order count, order size and late shipments shows
+      <em>how</em> each person sells, and whether any difference in delivery quality is large
+      enough to act on.</p>
+
+    <h3>Approach</h3>
+    <ul class="tight">
+      <li>Per employee: revenue, order count, average order value (revenue ÷ orders), and
+        late-shipment rate.</li>
+      <li>An order is late when its ShippedDate is after its RequiredDate. The 21 orders not yet
+        shipped are left out of the late rate, because their outcome is unknown.</li>
+      <li>Only 37 orders were late in total, so each late rate is shown with a 95% confidence
+        interval and its raw count.</li>
+    </ul>
+
+    <figure>
+      <div class="frame">
+        <a href="figures/employee_performance.png" title="Open full-size chart"><img src="figures/employee_performance.png" width="2600" height="1280" loading="lazy"
+             alt="Four panels sharing employee rows, sorted by revenue: revenue, order count, average order value, and late-shipment rate with 95% intervals. Margaret Peacock leads with $233k and 156 orders. Average order value ranges from $1,103 (Michael Suyama) to $1,798 (Anne Dodsworth). Every late-rate interval crosses the 4.6% company average."></a>
+      </div>
+      <figcaption>All nine employees, sorted by revenue, with job titles. Each panel has its own
+        axis. Dashed line: company late rate of 4.6%.</figcaption>
+    </figure>
+
+    <p><strong>The fair comparison is the six Sales Representatives.</strong> Andrew Fuller
+      (Vice President, Sales), Steven Buchanan (Sales Manager) and Laura Callahan (Inside Sales
+      Coordinator) have different jobs, and their lower order counts may reflect that, so they
+      are shown in the chart but left out of the comparison below.</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Sales representative</th><th class="num">Revenue</th><th class="num">Orders</th>
+          <th class="num">Avg order value</th><th class="num">Late rate (late / shipped)</th></tr></thead>
+        <tbody>
+          <tr><td>Margaret Peacock</td><td class="num">$232.9k</td><td class="num">156</td><td class="num">$1,493</td><td class="num">6.6% (10/151)</td></tr>
+          <tr><td>Janet Leverling</td><td class="num">$202.8k</td><td class="num">127</td><td class="num">$1,597</td><td class="num">3.9% (5/127)</td></tr>
+          <tr><td>Nancy Davolio</td><td class="num">$192.1k</td><td class="num">123</td><td class="num">$1,562</td><td class="num">1.7% (2/120)</td></tr>
+          <tr><td>Robert King</td><td class="num">$124.6k</td><td class="num">72</td><td class="num">$1,730</td><td class="num">5.8% (4/69)</td></tr>
+          <tr><td>Anne Dodsworth</td><td class="num">$77.3k</td><td class="num">43</td><td class="num">$1,798</td><td class="num">9.5% (4/42)</td></tr>
+          <tr><td>Michael Suyama</td><td class="num">$73.9k</td><td class="num">67</td><td class="num">$1,103</td><td class="num">4.6% (3/65)</td></tr>
+          <tr class="total"><td>Six reps combined</td><td class="num">$903.6k</td><td class="num">588</td><td class="num">$1,537</td><td class="num">4.9% (28/574)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Main finding</h3>
+    <div class="finding">
+      <p>Among the six reps, revenue ranges <strong>3.2×</strong>, from $233k (Peacock) to
+        $74k (Suyama), and the reps reach it in different ways. Peacock leads on order count;
+        King and Dodsworth win large orders (about $1,750) but fewer of them; Suyama handles
+        many small orders ($1,103). <strong>Late shipments do not separate anyone</strong>:
+        every employee's 95% interval includes the 4.6% company rate, and the highest rate
+        (Dodsworth, 9.5%) rests on just 4 late orders.</p>
+    </div>
+
+    <h3>Business implication</h3>
+    <ul class="tight">
+      <li>Coach to each rep's gap: more orders for King and Dodsworth, larger orders for
+        Suyama.</li>
+      <li>Do not reward or penalize individuals on late-shipment rate; the differences are
+        within noise.</li>
+      <li>Fix lateness as a process issue instead. Orders due 14 days after ordering ship late
+        17.6% of the time, against 3.7% for 28-day orders. That is a warehouse and carrier
+        question, not an individual one.</li>
+    </ul>
+  </section>
+
+  <!-- Data notes ---------------------------------------------------- -->
+  <section id="notes" aria-labelledby="notes-h">
+    <h2 id="notes-h">Data notes</h2>
+    <dl class="notes">
+      <dt>Source</dt>
+      <dd><code>data/Northwind Database.xlsx</code>: 830 orders and 2,155 order lines from
+        4 Jul 1996 to 6 May 1998. All joins are complete: every order has line items, a known
+        customer and a known employee.</dd>
+
+      <dt>Revenue</dt>
+      <dd>UnitPrice × Quantity × (1 − Discount) from the Orders Details sheet, i.e. the price
+        actually charged. The hand-made price columns in the Product sheet (Price, Cheap,
+        NewPrice, IsCheap) are not used. Total revenue is $1,265,793.</dd>
+
+      <dt>Revenue, not profit</dt>
+      <dd>The dataset has no cost data, so every figure is revenue. Margins cannot be
+        measured.</dd>
+
+      <dt>Partial months and years</dt>
+      <dd>May 1998 contains only 6 days (14 orders, $18k) and is excluded from monthly trends.
+        July 1996 starts on the 4th and is kept. Because 1996 and 1998 are incomplete, growth
+        compares Jan–Apr 1997 with Jan–Apr 1998, not calendar years.</dd>
+
+      <dt>Countries with few orders</dt>
+      <dd>Argentina, Belgium, Denmark, Ireland, Norway, Poland, Portugal and Switzerland each
+        have fewer than 20 orders and are pooled as "Other (8 countries)" in both country
+        charts. A growth rate computed on fewer than 5 orders in Jan–Apr 1997 is marked with a
+        star (for example Spain +2274%, Sweden +1097%).</dd>
+
+      <dt>Country</dt>
+      <dd>Taken from the Customers sheet. Four orders were shipped to a different country than
+        the customer's; they count under the customer's country.</dd>
+
+      <dt>Customers</dt>
+      <dd>2 of 91 customers (FISSA, PARIS) never ordered and are excluded from shares and
+        ranks.</dd>
+
+      <dt>Late shipments</dt>
+      <dd>Late = ShippedDate after RequiredDate. 21 orders, all placed on or after 8 Apr 1998, had not
+        shipped by the end of the data, and none was past its required date; they are left out
+        of the late rate. Intervals are 95% Wilson intervals.</dd>
+
+      <dt>Reproduce</dt>
+      <dd>
+<pre><code>python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python analysis/country_growth.py
+.venv/bin/python analysis/customer_concentration.py
+.venv/bin/python analysis/employee_performance.py</code></pre>
+        Charts are written to <code>figures/</code> and tables to <code>data/processed/</code>.
+      </dd>
+    </dl>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  Northwind sales analysis · Python (pandas, matplotlib) · Data: Northwind sample database
+</footer>
+
+</body>
+</html>
