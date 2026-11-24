@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Northwind Sales Analysis</title>
-<meta name="description" content="Three management questions answered from the Northwind dataset: country growth, customer concentration, and employee performance.">
+<meta name="description" content="Three management questions answered from the Northwind dataset: country growth, customer concentration, and whether discounts pay off.">
 <style>
   :root {
     color-scheme: light;
@@ -135,6 +135,10 @@
   .down { color: var(--down); }
   .up { color: var(--up); }
   .note { color: var(--muted); font-size: 13px; }
+  .caveat {
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 8px; padding: 10px 14px; margin: 12px 0 4px; font-size: 15px;
+  }
 
   dl.notes { margin: 0; }
   dl.notes dt { font-weight: 650; margin-top: 14px; }
@@ -158,10 +162,10 @@
 
 <header class="wrap">
   <p class="eyebrow">Northwind Traders · Sales analysis · Jul 1996 – May 1998</p>
-  <h1>Where growth comes from, who it depends on, and who sells it</h1>
+  <h1>Where growth comes from, who it depends on, and what discounts buy</h1>
   <p class="lede">Three questions a sales manager can act on, answered from 830 orders and
     $1.27M of revenue: which countries are growing, how dependent we are on a few
-    customers, and how our employees compare.</p>
+    customers, and whether discounts win bigger orders or just give revenue away.</p>
 </header>
 
 <nav class="toc" aria-label="Sections">
@@ -170,7 +174,7 @@
       <li><a href="#summary">Summary</a></li>
       <li><a href="#q8">Country growth</a></li>
       <li><a href="#q2">Customer concentration</a></li>
-      <li><a href="#q6">Employee performance</a></li>
+      <li><a href="#q4">Discounts</a></li>
       <li><a href="#notes">Data notes</a></li>
     </ul>
   </div>
@@ -191,9 +195,11 @@
         customer, placed its last order on 30 Oct 1997. Canada fell 24%, but without
         Mère Paillarde the rest of Canada grew from $4.8k to $11.5k (+141%), in line with the
         company. Nobody flagged the lapse.</li>
-      <li><strong>Employees are the people who keep those accounts.</strong> Sales volume differs
-        widely across the six sales reps, while late shipments are rare and spread evenly, so
-        the useful lever is account coverage and coaching, not shipping blame.</li>
+      <li><strong>Key accounts also receive the most discount, and deep discounts buy no extra
+        volume.</strong> The top 10 customers bring in 45% of revenue but receive 51% of all
+        discount dollars. Discounted lines carry about 26% more units than full-price lines of
+        the same product, but that lift is about the same at 5% off as at 25% off. Discounts look
+        more like rewards for large buyers than a tool that wins extra sales.</li>
     </ul>
     <div class="story">
       <div class="card">
@@ -209,10 +215,10 @@
         <a href="#q2">Customer concentration →</a>
       </div>
       <div class="card">
-        <p class="k">3.2×</p>
-        <p class="t">Revenue of the top sales rep compared with the lowest. Late-shipment rates
-          (4.6% overall) do not separate anyone.</p>
-        <a href="#q6">Employee performance →</a>
+        <p class="k">$55k</p>
+        <p class="t">Revenue given away by 20–25% discounts, 62% of all discount dollars, for no
+          more extra quantity than 5% off. Revenue, not profit: there is no cost data.</p>
+        <a href="#q4">Discounts →</a>
       </div>
     </div>
   </section>
@@ -360,77 +366,89 @@
     </ul>
   </section>
 
-  <!-- Question 6 ---------------------------------------------------- -->
-  <section id="q6" aria-labelledby="q6-h">
-    <p class="qnum">Question 6</p>
-    <h2 id="q6-h">How do employees compare on sales and on fulfillment quality?</h2>
+  <!-- Question 4 ---------------------------------------------------- -->
+  <section id="q4" aria-labelledby="q4-h">
+    <p class="qnum">Question 4</p>
+    <h2 id="q4-h">Do discounts increase order size, or just give away revenue?</h2>
+
+    <p class="caveat"><strong>Revenue given away, not profit.</strong> The dataset has no cost
+      data, so this section measures revenue given away and revenue gained. A discount that
+      breaks even on revenue still loses margin.</p>
 
     <h3>Why it matters</h3>
-    <p>Incentives, coaching and territory decisions need to rest on differences that are real.
-      Looking at revenue together with order count, order size and late shipments shows
-      <em>how</em> each person sells, and whether any difference in delivery quality is large
-      enough to act on.</p>
+    <p>Discounts are routine: 38.9% of order lines carry one, and together they gave away
+      $88.7k, or 7.0% of net revenue. If discounts win larger orders, they pay for themselves
+      in revenue; if not, they are a direct giveaway. The answer decides how much discount
+      authority the sales team should have.</p>
 
     <h3>Approach</h3>
     <ul class="tight">
-      <li>Per employee: revenue, order count, average order value (revenue ÷ orders), and
-        late-shipment rate.</li>
-      <li>An order is late when its ShippedDate is after its RequiredDate. The 21 orders not yet
-        shipped are left out of the late rate, because their outcome is unknown.</li>
-      <li>Only 37 orders were late in total, so each late rate is shown with a 95% confidence
-        interval and its raw count.</li>
+      <li>Compare each discounted order line with full-price lines of <strong>the same product
+        at the same unit price</strong>. Every product changed list price during the period, so
+        this keeps price changes and product mix out of the comparison. 829 of 838 discounted
+        lines have such a match.</li>
+      <li>Measure the extra quantity on discounted lines, and compare it with the extra
+        quantity needed to <strong>break even on revenue</strong>: a 25% discount needs a third
+        more units just to bring in what a full-price line does.</li>
+      <li>Repeat for each discount level (5, 10, 15, 20, 25%), with 95% intervals from 1,000
+        bootstrap resamples.</li>
     </ul>
 
     <figure>
       <div class="frame">
-        <a href="figures/employee_performance.png" title="Open full-size chart"><img src="figures/employee_performance.png" width="2600" height="1280" loading="lazy"
-             alt="Four panels sharing employee rows, sorted by revenue: revenue, order count, average order value, and late-shipment rate with 95% intervals. Margaret Peacock leads with $233k and 156 orders. Average order value ranges from $1,103 (Michael Suyama) to $1,798 (Anne Dodsworth). Every late-rate interval crosses the 4.6% company average."></a>
+        <a href="figures/discount_effect.png" title="Open full-size chart"><img src="figures/discount_effect.png" width="2400" height="1120" loading="lazy"
+             alt="Left: for each discount level, the measured extra quantity versus full-price lines of the same product, with 95% intervals, next to the extra quantity needed to break even on revenue. The measured lift stays between +20% and +32% at every level, while the break-even need rises from +5% at 5% off to +33% at 25% off. Right: revenue given away rises from $7.8k at 5% off to $33.0k at 25% off."></a>
       </div>
-      <figcaption>All nine employees, sorted by revenue, with job titles. Each panel has its own
-        axis. Dashed line: company late rate of 4.6%.</figcaption>
+      <figcaption>Left: extra quantity per discounted line (dot, with 95% interval) against the
+        extra quantity needed to break even on revenue (black tick). Right: revenue given away
+        at each discount level. Revenue only; no cost data.</figcaption>
     </figure>
-
-    <p><strong>The fair comparison is the six Sales Representatives.</strong> Andrew Fuller
-      (Vice President, Sales), Steven Buchanan (Sales Manager) and Laura Callahan (Inside Sales
-      Coordinator) have different jobs, and their lower order counts may reflect that, so they
-      are shown in the chart but left out of the comparison below.</p>
 
     <div class="table-scroll">
       <table>
-        <thead><tr><th>Sales representative</th><th class="num">Revenue</th><th class="num">Orders</th>
-          <th class="num">Avg order value</th><th class="num">Late rate (late / shipped)</th></tr></thead>
+        <thead><tr><th>Discount</th><th class="num">Lines</th>
+          <th class="num">Extra quantity (95% interval)</th><th class="num">Needed to break even</th>
+          <th class="num">Revenue vs full-price line</th><th class="num">Revenue given away</th></tr></thead>
         <tbody>
-          <tr><td>Margaret Peacock</td><td class="num">$232.9k</td><td class="num">156</td><td class="num">$1,493</td><td class="num">6.6% (10/151)</td></tr>
-          <tr><td>Janet Leverling</td><td class="num">$202.8k</td><td class="num">127</td><td class="num">$1,597</td><td class="num">3.9% (5/127)</td></tr>
-          <tr><td>Nancy Davolio</td><td class="num">$192.1k</td><td class="num">123</td><td class="num">$1,562</td><td class="num">1.7% (2/120)</td></tr>
-          <tr><td>Robert King</td><td class="num">$124.6k</td><td class="num">72</td><td class="num">$1,730</td><td class="num">5.8% (4/69)</td></tr>
-          <tr><td>Anne Dodsworth</td><td class="num">$77.3k</td><td class="num">43</td><td class="num">$1,798</td><td class="num">9.5% (4/42)</td></tr>
-          <tr><td>Michael Suyama</td><td class="num">$73.9k</td><td class="num">67</td><td class="num">$1,103</td><td class="num">4.6% (3/65)</td></tr>
-          <tr class="total"><td>Six reps combined</td><td class="num">$903.6k</td><td class="num">588</td><td class="num">$1,537</td><td class="num">4.9% (28/574)</td></tr>
+          <tr><td>5% off</td><td class="num">193</td><td class="num">+24% (+8% to +43%)</td><td class="num">+5%</td><td class="num">+12%</td><td class="num">$7.8k</td></tr>
+          <tr><td>10% off</td><td class="num">169</td><td class="num">+20% (+2% to +41%)</td><td class="num">+11%</td><td class="num">+2%</td><td class="num">$9.9k</td></tr>
+          <tr><td>15% off</td><td class="num">156</td><td class="num">+28% (+12% to +48%)</td><td class="num">+18%</td><td class="num">+12%</td><td class="num">$15.3k</td></tr>
+          <tr><td>20% off</td><td class="num">158</td><td class="num">+27% (+12% to +45%)</td><td class="num">+25%</td><td class="num">+8%</td><td class="num">$22.2k</td></tr>
+          <tr><td>25% off</td><td class="num">153</td><td class="num">+32% (+15% to +52%)</td><td class="num">+33%</td><td class="num">+2%</td><td class="num">$33.0k</td></tr>
+          <tr class="total"><td>All discounts</td><td class="num">829</td><td class="num">+26% (+18% to +36%)</td><td class="num">+17%</td><td class="num">+7% (−3% to +20%)</td><td class="num">$88.2k</td></tr>
         </tbody>
       </table>
     </div>
+    <p class="note">Revenue given away in the table covers the 829 comparable lines; across all
+      838 discounted lines it is $88.7k.</p>
 
     <h3>Main finding</h3>
     <div class="finding">
-      <p>Among the six reps, revenue ranges <strong>3.2×</strong>, from $233k (Peacock) to
-        $74k (Suyama), and the reps reach it in different ways. Peacock leads on order count;
-        King and Dodsworth win large orders (about $1,750) but fewer of them; Suyama handles
-        many small orders ($1,103). <strong>Late shipments do not separate anyone</strong>:
-        every employee's 95% interval includes the 4.6% company rate, and the highest rate
-        (Dodsworth, 9.5%) rests on just 4 late orders.</p>
+      <p>Discounted lines carry <strong>about 26% more units</strong> than full-price lines of the
+        same product, but <strong>deeper discounts do not add more</strong>: the lift is +24% at
+        5% off and +32% at 25% off, with heavily overlapping intervals. Meanwhile the cost climbs
+        steeply. 20–25% discounts give away <strong>$55k, 62% of all discount dollars</strong>,
+        and at 25% off the extra quantity only just covers the discount (+32% against +33%
+        needed). Overall, discounted lines bring in about 7% more revenue than a full-price line,
+        an effect too small to tell apart from zero.</p>
     </div>
 
     <h3>Business implication</h3>
     <ul class="tight">
-      <li>Coach to each rep's gap: more orders for King and Dodsworth, larger orders for
-        Suyama.</li>
-      <li>Do not reward or penalize individuals on late-shipment rate; the differences are
-        within noise.</li>
-      <li>Fix lateness as a process issue instead. Orders due 14 days after ordering ship late
-        17.6% of the time, against 3.7% for 28-day orders. That is a warehouse and carrier
-        question, not an individual one.</li>
+      <li>Cap routine discounts at 5–10%. They come with about the same extra volume as 25%,
+        at a fraction of the cost.</li>
+      <li>Require approval for discounts above 10%, with a stated reason such as a competing
+        offer or a volume commitment.</li>
+      <li>Review discounts for key accounts deliberately: the top 10 customers receive 51% of
+        discount dollars (see <a href="#q2">question 2</a>). Their loyalty may matter more than
+        the discount does.</li>
+      <li>Add product costs to the data before judging profitability; revenue alone cannot show
+        whether any discount level is profitable.</li>
     </ul>
+    <p class="note">The data shows that discounts and larger quantities go together, not which
+      causes which. Large orders may simply earn a discount. The flat lift across discount
+      levels fits that explanation: if buyers were responding to price, deeper discounts
+      should bring noticeably more volume.</p>
   </section>
 
   <!-- Data notes ---------------------------------------------------- -->
@@ -439,8 +457,8 @@
     <dl class="notes">
       <dt>Source</dt>
       <dd><code>data/Northwind Database.xlsx</code>: 830 orders and 2,155 order lines from
-        4 Jul 1996 to 6 May 1998. All joins are complete: every order has line items, a known
-        customer and a known employee.</dd>
+        4 Jul 1996 to 6 May 1998. All joins are complete: every order has line items and a known
+        customer.</dd>
 
       <dt>Revenue</dt>
       <dd>UnitPrice × Quantity × (1 − Discount) from the Orders Details sheet, i.e. the price
@@ -449,7 +467,7 @@
 
       <dt>Revenue, not profit</dt>
       <dd>The dataset has no cost data, so every figure is revenue. Margins cannot be
-        measured.</dd>
+        measured, and the discount analysis shows revenue given away, not profit lost.</dd>
 
       <dt>Partial months and years</dt>
       <dd>May 1998 contains only 6 days (14 orders, $18k) and is excluded from monthly trends.
@@ -470,10 +488,12 @@
       <dd>2 of 91 customers (FISSA, PARIS) never ordered and are excluded from shares and
         ranks.</dd>
 
-      <dt>Late shipments</dt>
-      <dd>Late = ShippedDate after RequiredDate. 21 orders, all placed on or after 8 Apr 1998, had not
-        shipped by the end of the data, and none was past its required date; they are left out
-        of the late rate. Intervals are 95% Wilson intervals.</dd>
+      <dt>Discount comparison</dt>
+      <dd>Each discounted line is compared with full-price lines of the same product at the
+        same unit price, because every product changed list price during the period. 9 of 838
+        discounted lines have no such match and are left out of the comparison. Eight lines
+        with odd discounts of 1–6% are counted in the 5% band. Intervals are 95% bootstrap
+        intervals from 1,000 resamples with a fixed seed.</dd>
 
       <dt>Reproduce</dt>
       <dd>
@@ -481,7 +501,7 @@
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python analysis/country_growth.py
 .venv/bin/python analysis/customer_concentration.py
-.venv/bin/python analysis/employee_performance.py</code></pre>
+.venv/bin/python analysis/discount_effect.py</code></pre>
         Charts are written to <code>figures/</code> and tables to <code>data/processed/</code>.
       </dd>
     </dl>
