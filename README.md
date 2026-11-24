@@ -67,7 +67,7 @@ Requires Python 3.9 or later. Run all commands from the repository root.
 
    | Script | Tables in `data/processed/` | Figures in `figures/` |
    |---|---|---|
-   | `country_growth.py` | `monthly_revenue_by_country.csv`, `country_summary.csv` | `monthly_revenue_by_country.png`, `country_yoy_jan_apr.png` |
+   | `country_growth.py` | `monthly_revenue_by_country.csv`, `country_summary.csv`, `country_top_customer.csv` | `monthly_revenue_by_country.png`, `country_yoy_jan_apr.png` |
    | `customer_concentration.py` | `customer_revenue.csv`, `customer_concentration.csv` | `customer_pareto.png` |
    | `discount_effect.py` | `discount_effect.csv`, `discount_by_customer.csv` | `discount_effect.png` |
 
@@ -83,6 +83,9 @@ Requires Python 3.9 or later. Run all commands from the repository root.
 - May 1998 has only 6 days of data, so it is left out of trends. Growth
   compares Jan–Apr 1997 with Jan–Apr 1998.
 - The 8 countries with fewer than 20 orders are pooled as "Other".
+- `country_top_customer.csv` gives each country's largest customer and its
+  share of the country's revenue (all orders); in 12 of 21 countries it is
+  above 50%.
 - Customer concentration is compared only between periods of equal length.
 - Two customers (FISSA, PARIS) never ordered and are excluded.
 

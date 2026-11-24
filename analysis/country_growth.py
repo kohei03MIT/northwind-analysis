@@ -35,6 +35,10 @@ MIN_BASE_ORDERS = 5
 WINDOW_PRIOR = ("1997-01-01", "1997-05-01")  # Jan-Apr 1997
 WINDOW_RECENT = ("1998-01-01", "1998-05-01")  # Jan-Apr 1998
 
+# A country "rests on one account" when its largest customer brings in
+# more than this fraction of the country's revenue.
+MAJORITY = 0.5
+
 # Chart colors (light-mode reference palette: one blue hue, two shades).
 INK = "#0b0b0b"
 INK_SECONDARY = "#52514e"
@@ -233,6 +237,49 @@ def summarize_groups(df):
     return out
 
 
+def top_customer_by_country(df, customers):
+    """Find each country's largest customer and its share of revenue.
+
+    Uses all orders, so the result does not depend on the trend window.
+
+    Args:
+        df (pandas.DataFrame): Order rows with a ``Group`` column.
+        customers (pandas.DataFrame): The Customers sheet.
+
+    Returns:
+        pandas.DataFrame: One row per country, sorted by ``TopShare``
+            (largest first), with ``Country``, ``Group``,
+            ``Customers`` (customers with orders), ``CountryRevenue``,
+            ``TopCustomerID``, ``TopCompanyName``,
+            ``TopCustomerRevenue``, ``TopShare`` (fraction of the
+            country's revenue), and ``AboveHalf`` (``TopShare`` greater
+            than ``MAJORITY``).
+    """
+    per_customer = (
+        df.groupby(["Country", "Group", "CustomerID"], as_index=False)
+        ["Revenue"].sum()
+    )
+    by_country = per_customer.groupby("Country")
+    per_customer["Customers"] = by_country["CustomerID"].transform("count")
+    per_customer["CountryRevenue"] = by_country["Revenue"].transform("sum")
+
+    # Keep the largest customer in each country.
+    top = (per_customer.sort_values("Revenue", ascending=False)
+           .drop_duplicates("Country"))
+    names = customers.set_index("CustomerID")["CompanyName"]
+    top = top.assign(
+        TopCompanyName=top["CustomerID"].map(names),
+        TopShare=top["Revenue"] / top["CountryRevenue"],
+    ).rename(columns={"CustomerID": "TopCustomerID",
+                      "Revenue": "TopCustomerRevenue"})
+    top["AboveHalf"] = top["TopShare"] > MAJORITY
+    cols = ["Country", "Group", "Customers", "CountryRevenue",
+            "TopCustomerID", "TopCompanyName", "TopCustomerRevenue",
+            "TopShare", "AboveHalf"]
+    return (top.sort_values("TopShare", ascending=False)[cols]
+            .reset_index(drop=True))
+
+
 def _money(value, _pos=None):
     """Format a dollar amount compactly for axis ticks.
 
@@ -421,6 +468,11 @@ def main():
     summary.to_csv(PROCESSED_DIR / "country_summary.csv",
                    index_label="Group")
 
+    customers = pd.read_excel(DATA_FILE, sheet_name="Customers")
+    top_customers = top_customer_by_country(orders, customers)
+    top_customers.to_csv(PROCESSED_DIR / "country_top_customer.csv",
+                         index=False)
+
     # Panel order: countries by revenue, then the pooled "Other" group.
     named = summary.drop(index="Total").index
     groups = [g for g in named if not g.startswith("Other")]
@@ -444,6 +496,16 @@ def main():
         "RevenueJanApr1998": "{:,.0f}".format,
         "Share": "{:.1%}".format,
         "YoY": lambda v: "n/a" if pd.isna(v) else f"{v:+.0%}",
+    }))
+
+    above = top_customers[top_customers["AboveHalf"]]
+    print(f"\nCountries where one customer has more than "
+          f"{MAJORITY:.0%} of the country's revenue: "
+          f"{len(above)} of {len(top_customers)}")
+    print(top_customers.to_string(index=False, formatters={
+        "CountryRevenue": "{:,.0f}".format,
+        "TopCustomerRevenue": "{:,.0f}".format,
+        "TopShare": "{:.1%}".format,
     }))
 
 
