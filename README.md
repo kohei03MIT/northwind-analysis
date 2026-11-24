@@ -18,8 +18,8 @@ Revenue is always `UnitPrice × Quantity × (1 − Discount)` from the
 Orders Details sheet. The manually entered columns in the Product sheet are not
 used.
 
-**Live site:** _add the GitHub Pages link here_ (served from `index.html` at the
-repository root, branch `main`).
+**Live site:** https://kohei03mit.github.io/northwind-analysis/ (served from
+`index.html` at the repository root, branch `main`).
 
 ## Repository layout
 
